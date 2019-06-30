@@ -12,3 +12,7 @@
 //     // ...
 // ]
 // };
+
+module.exports = {
+    mode: 'development'
+};

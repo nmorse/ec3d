@@ -45,59 +45,62 @@ function component() {
   // //   cube.rotation.y += at * 0.01;
   // // }
   // // animate();
-
-  //  element.innerHTML = r.join(' ', ['Hello', 'ECD']);
-
-
-  const nate = spawn(async function () {
-    const msg = ['nate', 'will you be my partner?'];
-    log('nate>', msg);
-    kirsti.send(msg);
-    while (1) {
-      const result = await this.receive(mail => {
-        log('nate<', mail)
-        const [pid, newmsg] = mail;
-        if (newmsg === 'will you be my partner?') {
-          pids[pid].send(['nate', 'yes!']);
-          return 'got invite from ' + pid;
-        }
-        if (newmsg === 'yes!') {
-          pids[pid].send(['nate', 'great, thanks!']);
-          return 'accepted invite from ' + pid;
-        }
-        log('what?', mail);
-        return 'shhh';
-      });
-      log('nate*', result);
+  const findAPartner = (name) => {
+    let partner = null;
+    while (!partner) {
+      const msg = [name, 'Would you care to dance?'];
+      log(name + '>', msg);
+      const selectedOther = randomOther(opposite(sex))
+      selectedOther.pid.send(msg);
+      while (!partner) {
+        const result = await this.receive(mail => {
+          log(name + '<', mail)
+          const [fromName, newmsg] = mail;
+          if (selectedOther.name === fromName &&
+            newmsg === 'Would you care to dance?') {
+            selectedOther.pid.send([name, 'yes!']);
+            partner = selectedOther;
+            return name + 'accepts invite from ' + selectedOther.name;
+          }
+          if (selectedOther.name === fromName && newmsg === 'yes!') {
+            selectedOther.pid.send([name, 'great, thanks!']);
+            partner = selectedOther;
+            return selectedOther.name + ' accepted invite from ' + name;
+          }
+          // send a responce to the sender -- 'excuse me, one moment...'
+          log(name + ' -- what?', mail);
+          return 'excuse me, one moment...';
+        });
+        log(name + '*', result);
+      }
     }
-  }).catch(console.error)
+  };
 
-  const kirsti = spawn(async function () {
-    const msg = ['kirsti', 'will you be my partner?'];
-    log('kirsti>', msg)
-    nate.send(msg);
-    while (1) {
-      const result = await this.receive(mail => {
-        log('kirsti<', mail);
-        const [pid, newmsg] = mail;
-        if (newmsg === 'will you be my partner?') {
-          pids[pid].send(['kirsti', 'yes!']);
-          return 'got invite from ' + pid;
-        }
-        if (newmsg === 'yes!') {
-          pids[pid].send(['kirsti', 'great, thanks!']);
-          return 'accepted invite from ' + pid;
-        }
-        log('what?', mail);
-        return 'shhh';
-      });
-      log('kirsti*', result);
-    }
-  })
-    .then(value => log('kirsti then ', value))
-    .catch(console.error)
+  const dancerRecords = [{
+    name: 'nate', sex: 'male', speed: 3
+  },
+  {
+    name: 'kirsti', sex: 'female', speed: 3
+  },
+  {
+    name: 'emma', sex: 'female', speed: 4
+  },
+  {
+    name: 'darcy', sex: 'male', speed: 1
+  }
+  ];
 
-  const pids = { nate, kirsti };
+  const dancers = r.map(({ name, sex }) => ({
+    pid: spawn(async function () {
+      const partner = findAPartner(name);
+
+    }), name, sex
+  }), dancerRecords);
+
+  const opposite = (sex) => sex === 'male' ? 'female' : 'male';
+  const randomOther = (otherSex) => r.find(
+    r.and(r.propEq('sex', otherSex), r.propEq('partner', false)),
+    dancers);
 
   function log(actor, result) {
     console.log(`${actor}: `, result);
