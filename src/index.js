@@ -65,12 +65,21 @@ function component() {
     pid: spawn(async function (myPid) {
       let partner = null;
       let triedList = [];
+      let invitedBy = [];
+      let danceOn = true;
       while (!partner) {
         let moveOn = false;
-        const msg = [myPid, name, 'Would you care to dance?'];
-        log(name + '>', msg);
-        const selectedOther = randomOther(opposite(sex), triedList);
-        selectedOther.pid.send(msg);
+        if (invitedBy.length) {
+          triedList = r.difference(triedList, invitedBy);
+          invitedBy = r.difference(invitedBy, triedList);
+        }
+        let selectedOther = randomOther(opposite(sex), triedList);
+        selectedOther =  !selectedOther && invitedBy.length ? otherByName(invitedBy.pop()) : selectedOther;
+        if (selectedOther) {
+          const msg = [myPid, name, 'Would you care to dance?'];
+          console.log(name + '>', msg, ' --> ', selectedOther.name);
+          selectedOther.pid.send(msg);
+        }
         while (!partner && !moveOn) {
           const result = await this.receive(mail => {
             log(name + '<', mail)
@@ -81,46 +90,68 @@ function component() {
               partner = selectedOther;
               return name + 'accepts invite from ' + selectedOther.name;
             }
+            if (selectedOther.name !== fromName &&
+              newmsg === 'Would you care to dance?') {
+              invitedBy.push(fromName);
+              selectedOther.pid.send([myPid, name, 'sorry, not now.']);
+              return name + 'delays invite from ' + selectedOther.name;
+            }
             if (selectedOther.name === fromName && newmsg === 'yes!') {
               selectedOther.pid.send([myPid, name, 'great, thanks!']);
               partner = selectedOther;
               return selectedOther.name + ' accepted invite from ' + name;
             }
             if (selectedOther.name === fromName && newmsg === 'sorry, not now.') {
-
               triedList.push(selectedOther.name);
-              return 'got delay';
+              return 'got rejection';
             }
             // messages from not your selection
             if (selectedOther.name !== fromName) {
-              fromPid.send([myPid, name, 'sorry, not now.']);
-              partner = selectedOther;
-              return selectedOther.name + ' accepted invite from ' + name;
+              // fromPid.send([myPid, name, 'sorry, not now.']);
+              return selectedOther.name + ' cannot consider message from ' + name;
             }
             // send a responce to the sender -- 'excuse me, one moment...'
             log(name + ' -- what?', mail);
             return 'excuse me, one moment...';
           });
-          if (result === 'got delay') {
+          if (result === 'got rejection') {
             moveOn = true;
           }
           log(name + '*', result);
         }
+        while (partner && danceOn) {
+          const result = await this.receive(mail => {
+            const [fromPid, fromName, newmsg] = mail;
+            log(name + '<', mail)
+            // messages from not your selection
+            if (partner.name !== fromName) {
+              fromPid.send([myPid, name, 'sorry, not now.']);
+              return 'suitors! sorry to ' + fromName;
+            }
+            // send a responce to the sender -- 'excuse me, one moment...'
+            log(name + ' -- what?', mail);
+            return 'excuse me, one moment...';
+          });
+          log(name + '*', result);
+        }
+
       }
     }), name, sex
   }), dancerRecords);
 
   const opposite = (sex) => sex === 'male' ? 'female' : 'male';
   const randomOther = (otherSex, tried) => {
+    const notThese = r.flip(r.none);
     const result = r.find(
       r.both(
         r.propEq('sex', otherSex),
-        p => r.complement(r.flip(r.any)(tried, r.equals(r.prop('name', p))))
+        p => notThese(tried, r.equals(r.prop('name', p)))
       ),
       dancers);
-    console.log(result);
+    // console.log(result);
     return result;
   };
+  const otherByName = (name) => r.find(r.propEq('name', name), dancers);
 
   function log(actor, result) {
     console.log(`${actor}: `, result);
