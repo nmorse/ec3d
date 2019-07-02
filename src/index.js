@@ -58,6 +58,18 @@ function component() {
   },
   {
     name: 'darcy', sex: 'male', speed: 1
+  },
+  {
+    name: 'jill', sex: 'female', speed: 4
+  },
+  {
+    name: 'eric', sex: 'male', speed: 1
+  },
+  {
+    name: 'tina', sex: 'female', speed: 4
+  },
+  {
+    name: 'william', sex: 'male', speed: 1
   }
   ];
 
@@ -88,16 +100,15 @@ function component() {
               newmsg === 'Would you care to dance?') {
               selectedOther.pid.send([myPid, name, 'yes!']);
               partner = selectedOther;
-              return name + 'accepts invite from ' + selectedOther.name;
+              return name + ' accepts invite from ' + selectedOther.name;
             }
             if (selectedOther.name !== fromName &&
               newmsg === 'Would you care to dance?') {
               invitedBy.push(fromName);
               selectedOther.pid.send([myPid, name, 'sorry, not now.']);
-              return name + 'delays invite from ' + selectedOther.name;
+              return name + ' deffers invite from ' + selectedOther.name;
             }
             if (selectedOther.name === fromName && newmsg === 'yes!') {
-              selectedOther.pid.send([myPid, name, 'great, thanks!']);
               partner = selectedOther;
               return selectedOther.name + ' accepted invite from ' + name;
             }
@@ -110,9 +121,7 @@ function component() {
               // fromPid.send([myPid, name, 'sorry, not now.']);
               return selectedOther.name + ' cannot consider message from ' + name;
             }
-            // send a responce to the sender -- 'excuse me, one moment...'
-            log(name + ' -- what?', mail);
-            return 'excuse me, one moment...';
+            return 'unhandled message';
           });
           if (result === 'got rejection') {
             moveOn = true;
@@ -126,11 +135,9 @@ function component() {
             // messages from not your selection
             if (partner.name !== fromName) {
               fromPid.send([myPid, name, 'sorry, not now.']);
-              return 'suitors! sorry to ' + fromName;
+              return 'sorry to ' + fromName;
             }
-            // send a responce to the sender -- 'excuse me, one moment...'
-            log(name + ' -- what?', mail);
-            return 'excuse me, one moment...';
+            return 'unhandled message';
           });
           log(name + '*', result);
         }
