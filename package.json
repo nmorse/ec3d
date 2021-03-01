@@ -16,6 +16,6 @@
   "dependencies": {
     "actorjs": "0.0.2",
     "ramda": "^0.26.1",
-    "three": "^0.106.1"
+    "three": "^0.125.0"
   }
 }
